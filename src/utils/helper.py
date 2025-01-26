@@ -231,6 +231,40 @@ def get_revenue_data(data: str):
     finally:
         if conn:
             conn.close()  # Ensure the connection is always closed
+            
+            
+def get_paid_user_data(data: str):
+    conn = init_engine()
+    
+    if not conn:
+        return 0  # Return 0 if the connection is not established
+
+    try:
+        cur = conn.cursor()
+
+        # Define the query based on the `data` input
+        queries = {
+            "paid": "SELECT count(*) FROM invoice_table where is_paid is true",
+            "not_paid": "SELECT count(*) FROM invoice_table WHERE is_paid is not true",
+        }
+        
+        query = queries.get(data)
+        if not query:
+            return 0  # Return 0 for invalid input data
+        
+        cur.execute(query)
+        result = cur.fetchone()
+        
+        # Convert result to an integer or return 0 if result is None
+        qty_data = int(result[0]) if result and result[0] is not None else 0
+
+        return qty_data
+    except Exception as e:
+        st.error(f"Error when fetching qty data: {e}")
+        return 0  # Return 0 in case of an error
+    finally:
+        if conn:
+            conn.close()  # Ensure the connection is always closed
 
 
 def generate_json_invoice(nama: str):
