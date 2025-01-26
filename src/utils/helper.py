@@ -315,8 +315,8 @@ def generate_json_invoice(nama: str):
             },
             {
                 "item": "Upsize",
-                "notes": "",
-                "qty": "",
+                "notes": tmp_data["apparel_size"],
+                "qty": tmp_data["qty"],
                 "total": tmp_data["upsize_price"]
             },
             {
