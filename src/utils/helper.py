@@ -11,11 +11,11 @@ from io import BytesIO
 
 load_dotenv()
 
-DB_NAME = os.getenv("POSTGRES_DB_DEV")
-DB_USER = os.getenv("POSTGRES_USER_DEV")
-DB_PASS = os.getenv("POSTGRES_PASS_DEV")
-DB_HOST = os.getenv("POSTGRES_HOST_DEV")
-DB_PORT = os.getenv("POSTGRES_PORT_DEV")
+DB_NAME = os.getenv("POSTGRES_DB")
+DB_USER = os.getenv("POSTGRES_USER")
+DB_PASS = os.getenv("POSTGRES_PASS")
+DB_HOST = os.getenv("POSTGRES_HOST")
+DB_PORT = os.getenv("POSTGRES_PORT")
 
 
 def init_engine():
