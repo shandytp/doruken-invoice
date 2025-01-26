@@ -11,11 +11,11 @@ from io import BytesIO
 
 load_dotenv()
 
-DB_NAME = os.getenv("POSTGRES_DB")
-DB_USER = os.getenv("POSTGRES_USER")
-DB_PASS = os.getenv("POSTGRES_PASS")
-DB_HOST = os.getenv("POSTGRES_HOST")
-DB_PORT = os.getenv("POSTGRES_PORT")
+DB_NAME = os.getenv("POSTGRES_DB_DEV")
+DB_USER = os.getenv("POSTGRES_USER_DEV")
+DB_PASS = os.getenv("POSTGRES_PASS_DEV")
+DB_HOST = os.getenv("POSTGRES_HOST_DEV")
+DB_PORT = os.getenv("POSTGRES_PORT_DEV")
 
 
 def init_engine():
@@ -161,6 +161,78 @@ def get_users():
     return []
 
 
+def get_qty_data(data: str):
+    conn = init_engine()
+    
+    if not conn:
+        return 0  # Return 0 if the connection is not established
+
+    try:
+        cur = conn.cursor()
+
+        # Define the query based on the `data` input
+        queries = {
+            "total": "SELECT SUM(qty) FROM invoice_table",
+            "ayyis": "SELECT SUM(qty) FROM invoice_table WHERE apparel_package = 'Ayyis Dino'",
+            "gothic": "SELECT SUM(qty) FROM invoice_table WHERE apparel_package = 'Harris Gothic'",
+            "bundle": "SELECT SUM(qty) FROM invoice_table WHERE apparel_package = 'Bundle Gothic and Ayyis'"
+        }
+        
+        query = queries.get(data)
+        if not query:
+            return 0  # Return 0 for invalid input data
+        
+        cur.execute(query)
+        result = cur.fetchone()
+        
+        # Convert result to an integer or return 0 if result is None
+        qty_data = int(result[0]) if result and result[0] is not None else 0
+
+        return qty_data
+    except Exception as e:
+        st.error(f"Error when fetching qty data: {e}")
+        return 0  # Return 0 in case of an error
+    finally:
+        if conn:
+            conn.close()  # Ensure the connection is always closed
+            
+
+def get_revenue_data(data: str):
+    conn = init_engine()
+    
+    if not conn:
+        return 0  # Return 0 if the connection is not established
+
+    try:
+        cur = conn.cursor()
+
+        # Define the query based on the `data` input
+        queries = {
+            "total": "SELECT SUM(total_price) FROM invoice_table",
+            "ayyis": "SELECT SUM(total_price) FROM invoice_table WHERE apparel_package = 'Ayyis Dino'",
+            "gothic": "SELECT SUM(total_price) FROM invoice_table WHERE apparel_package = 'Harris Gothic'",
+            "bundle": "SELECT SUM(total_price) FROM invoice_table WHERE apparel_package = 'Bundle Gothic and Ayyis'"
+        }
+        
+        query = queries.get(data)
+        if not query:
+            return 0  # Return 0 for invalid input data
+        
+        cur.execute(query)
+        result = cur.fetchone()
+        
+        # Convert result to an integer or return 0 if result is None
+        qty_data = int(result[0]) if result and result[0] is not None else 0
+
+        return qty_data
+    except Exception as e:
+        st.error(f"Error when fetching qty data: {e}")
+        return 0  # Return 0 in case of an error
+    finally:
+        if conn:
+            conn.close()  # Ensure the connection is always closed
+
+
 def generate_json_invoice(nama: str):
     data = fetch_invoice_data()
     tmp_data = data.loc[data["nama"] == nama]
@@ -207,6 +279,12 @@ def generate_json_invoice(nama: str):
                 "total": tmp_data["total_price"] - tmp_data["shipping_cost"],  # Keep as number
             },
             {
+                "item": "Upsize",
+                "notes": "",
+                "qty": "",
+                "total": tmp_data["upsize_price"]
+            },
+            {
                 "item": "Shipping Cost",
                 "notes": "",
                 "qty": "",
@@ -214,8 +292,8 @@ def generate_json_invoice(nama: str):
             }
         ],
         "terms": [
-            "Jika ada sumur di Ladang, jangan lupa bikin Onsen.",
-            "Support UMKM Virtual ini.",
+            "Untuk pembayaran merch bisa menggunakan Bank BCA / Gopay / Dana / ShopeePay",
+            "Jika ada pertanyaan lebih lanjut, bisa langsung tanyakan Contact Person di atas",
             "Bang plis suruh Ado konser di Indonesia :c",
         ],
     }
@@ -243,3 +321,9 @@ def render_template_to_pdf(template_file: str, context: dict, styles: list) -> B
     pdf_buffer.seek(0)
 
     return pdf_buffer
+
+
+def format_currency(value: int) -> str:
+    if value == 0:
+        return "Rp 0"
+    return f"Rp {value:,.0f}".replace(",", ".")
