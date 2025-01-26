@@ -32,6 +32,7 @@ def main():
     )
     
     if selected_box == "Generate Invoice Data":
+        st.header("Generate Invoice")
 
         with st.form(key = "invoice_form", clear_on_submit = True):
             total_price = 0
@@ -131,6 +132,7 @@ def main():
                 st.error("Isi semua data!")
 
     elif selected_box == "Update Status Payment":
+        st.header("Update Status Payment")
         customer_names = get_user_options()
         
         if customer_names:
@@ -156,6 +158,8 @@ def main():
             st.error("Tidak ada customer")
 
     elif selected_box == "Show Data":
+        st.header("Database Transaction")
+        
         invoice_data = fetch_invoice_data()
         
         if invoice_data is not None and not invoice_data.empty:
@@ -193,11 +197,13 @@ def main():
             st.success(f"Invoice for {selected_name} success generate!")
 
     elif selected_box == "Dashboard":
+        st.header("Dashboard Tracker Transactions Performance")
+        
         a, b, c, d = st.columns(4)
         e, f, g, h = st.columns(4)
-        i, j = st.columns(2)
+        i, j, k = st.columns(3)
         
-        a.metric("Total Order QTY", value = get_qty_data(data = "total"), border = True)
+        a.metric("Total QTY", value = get_qty_data(data = "total"), border = True)
         b.metric("Order QTY Ayyis", value = get_qty_data(data = "ayyis"), border = True)
         c.metric("Order QTY Gothic", value = get_qty_data(data = "gothic"), border = True)
         d.metric("Order QTY Bundle", value = get_qty_data(data = "bundle"), border = True)
@@ -207,8 +213,9 @@ def main():
         g.metric("Total Revenue Gothic", value = format_currency(get_revenue_data(data="gothic")), border=True)
         h.metric("Total Revenue Bundle", value = format_currency(get_revenue_data(data="bundle")), border=True)
         
-        i.metric("Total Paid Users", value = get_paid_user_data(data = "paid"), border = True)
-        j.metric("Total Not Paid Users", value = get_paid_user_data(data = "not_paid"), border = True)
+        i.metric("Total Order", value = get_paid_user_data(data = "total_order"), border = True)
+        j.metric("Total Paid Users", value = get_paid_user_data(data = "paid"), border = True)
+        k.metric("Total Not Paid Users", value = get_paid_user_data(data = "not_paid"), border = True)
 
 
 if __name__ == "__main__":
