@@ -244,6 +244,7 @@ def get_paid_user_data(data: str):
 
         # Define the query based on the `data` input
         queries = {
+            "total_order": "SELECT count(*) from invoice_table",
             "paid": "SELECT count(*) FROM invoice_table where is_paid is true",
             "not_paid": "SELECT count(*) FROM invoice_table WHERE is_paid is not true",
         }
