@@ -3,7 +3,7 @@ from weasyprint import CSS
 from src.utils.helper import (insert_data, get_user_options, update_payment_status,
                               fetch_invoice_data, get_users, generate_json_invoice,
                               render_template_to_pdf, get_qty_data, get_revenue_data,
-                              format_currency)
+                              format_currency, get_paid_user_data)
 
 
 st.title("Invoice Doruken Data Generator (for internal)")
@@ -195,6 +195,7 @@ def main():
     elif selected_box == "Dashboard":
         a, b, c, d = st.columns(4)
         e, f, g, h = st.columns(4)
+        i, j = st.columns(2)
         
         a.metric("Total Order QTY", value = get_qty_data(data = "total"), border = True)
         b.metric("Order QTY Ayyis", value = get_qty_data(data = "ayyis"), border = True)
@@ -205,6 +206,9 @@ def main():
         f.metric("Total Revenue Ayyis", value = format_currency(get_revenue_data(data="ayyis")), border=True)
         g.metric("Total Revenue Gothic", value = format_currency(get_revenue_data(data="gothic")), border=True)
         h.metric("Total Revenue Bundle", value = format_currency(get_revenue_data(data="bundle")), border=True)
+        
+        i.metric("Total Paid Users", value = get_paid_user_data(data = "paid"), border = True)
+        j.metric("Total Not Paid Users", value = get_paid_user_data(data = "not_paid"), border = True)
 
 
 if __name__ == "__main__":
