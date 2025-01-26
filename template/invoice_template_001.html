@@ -83,23 +83,25 @@
                            <tbody>
                               {% set total = namespace(subtotal_price=0) %}
                               {% for item in itemList %}
-                                 <tr>
-                                    <td>
-                                       <span class="text-inverse">{{ item.item }}</span><br>
-                                    </td>
-                                    <td class="text-center">
-                                       <span class="text-secondary">{{ item.notes }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                       <span class="text-secondary">{{ item.qty }}</span>
-                                    </td>
-                                    <td class="text-right">
-                                       Rp {{ item.total }},-
-                                    </td>
-                                 </tr>
-                                 {% set total.subtotal_price = total.subtotal_price + item.total %}
+                                 {% if not (item.item == "Upsize" and item.total == 0) %}
+                                    <tr>
+                                       <td>
+                                          <span class="text-inverse">{{ item.item }}</span><br>
+                                       </td>
+                                       <td class="text-center">
+                                          <span class="text-secondary">{{ item.notes }}</span>
+                                       </td>
+                                       <td class="text-center">
+                                          <span class="text-secondary">{{ item.qty }}</span>
+                                       </td>
+                                       <td class="text-right">
+                                          Rp {{ item.total }},-
+                                       </td>
+                                    </tr>
+                                    {% set total.subtotal_price = total.subtotal_price + item.total %}
+                                 {% endif %}
                               {% endfor %}
-                           </tbody>                           
+                           </tbody>                          
                         </table>
                      </div>
                      <!-- end table-responsive -->
