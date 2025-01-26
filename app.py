@@ -1,7 +1,9 @@
 import streamlit as st
 from weasyprint import CSS
 from src.utils.helper import (insert_data, get_user_options, update_payment_status,
-                              fetch_invoice_data, get_users, generate_json_invoice, render_template_to_pdf)
+                              fetch_invoice_data, get_users, generate_json_invoice,
+                              render_template_to_pdf, get_qty_data, get_revenue_data,
+                              format_currency)
 
 
 st.title("Invoice Doruken Data Generator (for internal)")
@@ -25,13 +27,15 @@ def main():
 
     selected_box = st.sidebar.selectbox(
         label = "Menu",
-        options = ("Generate Invoice Data", "Update Status Payment", "Show Data", "Generate Invoice File")
+        options = ("Generate Invoice Data", "Update Status Payment",
+                   "Show Data", "Generate Invoice File", "Dashboard")
     )
     
     if selected_box == "Generate Invoice Data":
 
         with st.form(key = "invoice_form", clear_on_submit = True):
             total_price = 0
+            upsize_price = 0
             
             nama = st.text_input(
                 label = "Nama Customer",
@@ -65,12 +69,21 @@ def main():
                 
             apparel_size = st.selectbox(
                 label = "Size Apparel Customer",
-                options = ("S", "M", "L", "XL", "XXL"),
+                options = ("S", "M", "L", "XL", "2XL", "3XL", "4XL"),
                 help = "Size Apparel yagn dipilih oleh Customer"
             )
             
-            if apparel_size == "XXL":
+            if apparel_size == "2XL":
                 total_price += 5000
+                upsize_price += 5000
+                
+            elif apparel_size == "3XL":
+                total_price += 10_000
+                upsize_price += 10_000
+                
+            elif apparel_size == "4XL":
+                total_price += 15_000
+                upsize_price += 15_000
                 
             qty = st.number_input(
                 label = "Qty Apparel",
@@ -107,6 +120,7 @@ def main():
                             phone = phone,
                             apparel_package = apparel_package,
                             apparel_size = apparel_size,
+                            upsize_price = upsize_price,
                             qty = qty,
                             address = address,
                             shipping_cost = shipping_cost,
@@ -178,6 +192,20 @@ def main():
             
             st.success(f"Invoice for {selected_name} success generate!")
 
-         
+    elif selected_box == "Dashboard":
+        a, b, c, d = st.columns(4)
+        e, f, g, h = st.columns(4)
+        
+        a.metric("Total Order QTY", value = get_qty_data(data = "total"), border = True)
+        b.metric("Order QTY Ayyis", value = get_qty_data(data = "ayyis"), border = True)
+        c.metric("Order QTY Gothic", value = get_qty_data(data = "gothic"), border = True)
+        d.metric("Order QTY Bundle", value = get_qty_data(data = "bundle"), border = True)
+        
+        e.metric("Total Revenue", value = format_currency(get_revenue_data(data="total")), border=True)
+        f.metric("Total Revenue Ayyis", value = format_currency(get_revenue_data(data="ayyis")), border=True)
+        g.metric("Total Revenue Gothic", value = format_currency(get_revenue_data(data="gothic")), border=True)
+        h.metric("Total Revenue Bundle", value = format_currency(get_revenue_data(data="bundle")), border=True)
+
+
 if __name__ == "__main__":
     main()
