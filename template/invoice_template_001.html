@@ -95,7 +95,7 @@
                                           <span class="text-secondary">{{ item.qty }}</span>
                                        </td>
                                        <td class="text-right">
-                                          Rp {{ item.total }},-
+                                          Rp {{ "{:,.0f}".format(item.total) }},-
                                        </td>
                                     </tr>
                                     {% set total.subtotal_price = total.subtotal_price + item.total %}
@@ -111,13 +111,13 @@
                            <div class="invoice-price-row">
                               <div class="sub-price">
                                  <small>SUBTOTAL</small>
-                                 <span class="text-inverse">Rp {{ total.subtotal_price }},- </span>
+                                 <span class="text-inverse">Rp {{ "{:,.0f}".format(total.subtotal_price) }},- </span>
                               </div>
                            </div>
                         </div>
                         <div class="invoice-price-right">
                            {% set total.final_total = total.subtotal_price %}
-                           <small>TOTAL</small> <span class="f-w-600">Rp {{ total.final_total }},- </span>
+                           <small>TOTAL</small> <br> <span class="f-w-600">Rp {{ "{:,.0f}".format(total.final_total) }},- </span>
                         </div>
                      </div>
                      <!-- end invoice-price -->
