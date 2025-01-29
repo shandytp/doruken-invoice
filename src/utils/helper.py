@@ -7,6 +7,7 @@ from sqlalchemy import create_engine
 from weasyprint import HTML
 from jinja2 import Template
 from io import BytesIO
+import requests
 
 
 load_dotenv()
@@ -16,6 +17,8 @@ DB_USER = os.getenv("POSTGRES_USER")
 DB_PASS = os.getenv("POSTGRES_PASS")
 DB_HOST = os.getenv("POSTGRES_HOST")
 DB_PORT = os.getenv("POSTGRES_PORT")
+
+API_KEY = os.getenv("API_KEY")
 
 
 def init_engine():
@@ -268,7 +271,7 @@ def get_paid_user_data(data: str):
             conn.close()  # Ensure the connection is always closed
 
 
-def generate_json_invoice(nama: str):
+def generate_json_invoice(nama: str) -> dict:
     data = fetch_invoice_data()
     tmp_data = data.loc[data["nama"] == nama]
     tmp_data = tmp_data.iloc[0]
@@ -298,10 +301,10 @@ def generate_json_invoice(nama: str):
         "server": {
             "logo": absolute_logo_path,
             "companyName": "Doruken Satu",
-            "firstName": "Shandy",
-            "lastName": "T P",
+            "firstName": "Doruken",
+            "lastName": "Apparel",
             "address": {
-                "city": "Rawa Buntu, Serpong",
+                "city": "Depok",
                 "country": "",
             },
             "discordUsername": "shandytp",
@@ -311,13 +314,13 @@ def generate_json_invoice(nama: str):
                 "item": tmp_data["apparel_package"],
                 "notes": tmp_data["apparel_size"],
                 "qty": tmp_data["qty"],  # Keep as number
-                "total": tmp_data["total_price"] - tmp_data["shipping_cost"],  # Keep as number
+                "total": tmp_data["total_price"] - tmp_data["shipping_cost"] - tmp_data["upsize_price"],  # Keep as number
             },
             {
                 "item": "Upsize",
                 "notes": tmp_data["apparel_size"],
                 "qty": tmp_data["qty"],
-                "total": tmp_data["upsize_price"]
+                "total": tmp_data["upsize_price"] * tmp_data["qty"]
             },
             {
                 "item": "Shipping Cost",
@@ -362,3 +365,24 @@ def format_currency(value: int) -> str:
     if value == 0:
         return "Rp 0"
     return f"Rp {value:,.0f}".replace(",", ".")
+
+
+def get_ongkir(origin: str, destination: str):
+    url = f"https://api.binderbyte.com/v1/cost?api_key={API_KEY}&courier=jne&origin={origin}&destination={destination}&weight=1"
+
+    payload = {}
+    headers = {}
+
+    try:
+        response = requests.request("GET", url, headers = headers, data = payload)
+        
+        raw_data = response.json()
+        
+        tmp_data = pd.DataFrame(raw_data["data"]["costs"])
+        
+        final_data = tmp_data[tmp_data["service"] == "REG"]
+        
+        return final_data
+        
+    except Exception as e:
+        st.error(f"There's something wrong with the API: {e}")
