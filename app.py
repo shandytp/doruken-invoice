@@ -1,15 +1,15 @@
 import streamlit as st
+import datetime
 from weasyprint import CSS
-from src.utils.helper import (insert_data, get_user_options, update_payment_status,
-                              fetch_invoice_data, get_users, generate_json_invoice,
-                              render_template_to_pdf, get_qty_data, get_revenue_data,
-                              format_currency, get_paid_user_data)
-
+from src.utils.helper import (
+    insert_data, get_user_options, update_payment_status, fetch_invoice_data,
+    get_users, generate_json_invoice, render_template_to_pdf, get_qty_data,
+    get_revenue_data, format_currency, get_paid_user_data, get_ongkir
+)
 
 st.title("Invoice Doruken Data Generator (for internal)")
 
 DORUKEN_LOGO = "assets/doruken_logo.png"
-
 TEMPLATE_HTML_PATH = "template/invoice_template_001.html"
 
 TEMPLATE_CSS = [
@@ -20,202 +20,147 @@ TEMPLATE_CSS = [
 
 
 def main():
-
-    st.logo(DORUKEN_LOGO, icon_image = DORUKEN_LOGO, size = "large")
-    
-    # st.sidebar.image(DORUKEN_LOGO)
+    st.logo(DORUKEN_LOGO, icon_image= DORUKEN_LOGO, size = "large")  # Fix logo display
 
     selected_box = st.sidebar.selectbox(
-        label = "Menu",
-        options = ("Generate Invoice Data", "Update Status Payment",
-                   "Show Data", "Generate Invoice File", "Dashboard")
+        label="Menu",
+        options=["Generate Invoice Data", "Update Status Payment",
+                 "Show Data", "Generate Invoice File", "Dashboard"]
     )
     
     if selected_box == "Generate Invoice Data":
-        st.header("Generate Invoice")
-
-        with st.form(key = "invoice_form", clear_on_submit = True):
+        with st.form(key="invoice_form", clear_on_submit=True):
             total_price = 0
             upsize_price = 0
             
-            nama = st.text_input(
-                label = "Nama Customer",
-                help = "Nama customer yang ingin dimasukkan pada Invoice"
-            )
-            
-            email = st.text_input(
-                label = "Email Customer",
-                help = "Email customer yang ingin dimasukkan pada Invoice"
-            )
-            
-            phone = st.text_input(
-                label = "Nomor HP Customer",
-                help = "Nomor HP customer yang ingin dimasukkan ke Invoice"
-            )
+            nama = st.text_input("Nama Customer", help="Nama customer pada Invoice")
+            email = st.text_input("Email Customer", help="Email customer pada Invoice")
+            phone = st.text_input("Nomor HP Customer", help="Nomor HP customer ke Invoice")
+
+            # Price Mapping for Packages
+            package_prices = {
+                "Harris Gothic": 150_000,
+                "Ayyis Dino": 150_000,
+                "Bundle Gothic and Ayyis": 280_000
+            }
             
             apparel_package = st.selectbox(
-                label = "Package yang dipilih Customer",
-                options = ("Harris Gothic", "Ayyis Dino", "Bundle Gothic and Ayyis"),
-                help = "Apparel Package yang dipilih oleh Customer"
+                "Package yang dipilih Customer",
+                options=list(package_prices.keys()),
+                help="Apparel Package yang dipilih"
             )
             
-            if apparel_package == "Harris Gothic":
-                total_price += 150_000
-                
-            elif apparel_package == "Ayyis Dino":
-                total_price += 150_000
-                
-            elif apparel_package == "Bundle Gothic and Ayyis":
-                total_price += 280_000
-                
-            apparel_size = st.selectbox(
-                label = "Size Apparel Customer",
-                options = ("S", "M", "L", "XL", "2XL", "3XL", "4XL"),
-                help = "Size Apparel yagn dipilih oleh Customer"
-            )
+            total_price += package_prices[apparel_package]
+
+            # Price Mapping for Sizes
+            size_prices = {"2XL": 5000, "3XL": 10_000, "4XL": 15_000}
+            apparel_size = st.selectbox("Size Apparel Customer", ["S", "M", "L", "XL", "2XL", "3XL", "4XL"])
             
-            if apparel_size == "2XL":
-                total_price += 5000
-                upsize_price += 5000
-                
-            elif apparel_size == "3XL":
-                total_price += 10_000
-                upsize_price += 10_000
-                
-            elif apparel_size == "4XL":
-                total_price += 15_000
-                upsize_price += 15_000
-                
-            qty = st.number_input(
-                label = "Qty Apparel",
-                min_value = 1,
-                help = "Jumlah qty yang dibeli customer"
-            )
-                
-            address = st.text_area(
-                label = "Alamat Customer",
-                help = "Alamat customer yang ingin dimasukkan ke Invoice"
-            )
+            if apparel_size in size_prices:
+                upsize_price = size_prices[apparel_size]
+                total_price += upsize_price
             
-            shipping_cost = st.number_input(
-                label = "Biaya Ongkir",
-                min_value = 0,
-                help = "Masukkan biaya ongkir yang dibayar oleh customer"
-            )
+            qty = st.number_input("Qty Apparel", min_value=1, help="Jumlah qty yang dibeli customer")
+
+            address = st.text_area("Alamat Customer", help="Alamat customer pada Invoice")
+            origin = st.text_input("Kota Pengirim", value="depok")
+
+            destination = st.text_input("Kota Customer", help="Kota Customer tujuan")
             
-            due_date = st.date_input(
-                label = "Tanggal pelunasan akhir Customer",
-                value = "today",
-                help = "Masukkan tanggal akhir pelunasan customer"
-            )
+            if "shipping_cost" not in st.session_state:
+                st.session_state.shipping_cost = 0
+
+            # Shipping Cost Calculation
+            shipping_cost = 0
+            if st.form_submit_button("Calculate Shipping Cost") and destination:
+                ongkir_data = get_ongkir(origin=origin, destination=destination)
+                if not ongkir_data.empty:
+                    st.session_state.shipping_cost = int(ongkir_data.iloc[0]["price"])
+                else:
+                    st.error("Gagal mendapatkan biaya ongkir! Periksa input.")
+                    
+            shipping_cost = st.number_input("Biaya Ongkir", value=st.session_state.shipping_cost, help="Masukkan biaya ongkir")
             
-            total_price = (total_price * qty) + shipping_cost
+            due_date = st.date_input("Tanggal pelunasan akhir", value=datetime.date.today())
+
+            total_price = (total_price * qty) + st.session_state.shipping_cost
             
             submit_button = st.form_submit_button("Submit")
-            
-        if submit_button:
-            if nama and email and phone and apparel_package and apparel_size and address:
-                insert_data(table_name = "invoice_table",
-                            nama = nama,
-                            email = email,
-                            phone = phone,
-                            apparel_package = apparel_package,
-                            apparel_size = apparel_size,
-                            upsize_price = upsize_price,
-                            qty = qty,
-                            address = address,
-                            shipping_cost = shipping_cost,
-                            due_date = due_date,
-                            total_price = total_price)
-
-            else:
-                st.error("Isi semua data!")
+        
+            if submit_button:
+                if nama and email and phone and address:
+                    insert_data(
+                        table_name="invoice_table",
+                        nama=nama, email=email, phone=phone,
+                        apparel_package=apparel_package, apparel_size=apparel_size,
+                        upsize_price=upsize_price, qty=qty, address=address,
+                        origin=origin, destination=destination,
+                        shipping_cost=shipping_cost, due_date=due_date, total_price=total_price
+                    )
+                    st.success("Invoice berhasil disimpan!")
+                else:
+                    st.error("Isi semua data!")
 
     elif selected_box == "Update Status Payment":
-        st.header("Update Status Payment")
         customer_names = get_user_options()
-        
         if customer_names:
-            with st.form(key = "update_payment_form", clear_on_submit = True):
-                selected_name = st.selectbox(
-                    label = "Customer Name",
-                    options = customer_names,
-                    help = "Pilih Customer yang ingin di update Status Payment"
-                )
-                
+            with st.form(key="update_payment_form", clear_on_submit=True):
+                selected_name = st.selectbox("Customer Name", customer_names, help="Pilih Customer untuk update")
                 submit_button = st.form_submit_button("Update Payment Status")
-                
+            
             if submit_button:
-                success = update_payment_status(name = selected_name)
-                
-                if success:
-                    st.success(f"Payment Status customer: {selected_name} berhasil di update")
-                    
+                if update_payment_status(name=selected_name):
+                    st.success(f"Status pembayaran {selected_name} berhasil diperbarui")
                 else:
-                    st.error("Failed to update payment status.")
-                    
+                    st.error("Gagal memperbarui status pembayaran.")
         else:
             st.error("Tidak ada customer")
 
     elif selected_box == "Show Data":
-        st.header("Database Transaction")
-        
         invoice_data = fetch_invoice_data()
-        
-        if invoice_data is not None and not invoice_data.empty:
+        if not invoice_data.empty:
             st.header("Invoice Doruken Data")
             st.dataframe(invoice_data)
-            
         else:
-            st.warning("Data Invoice tidak ada yang bisa diambil dari Database!")
-            
+            st.warning("Data Invoice tidak ditemukan!")
+
     elif selected_box == "Generate Invoice File":
         users_data = get_users()
-        
-        selected_name = st.selectbox(
-            label = "Customer Name",
-            options = users_data
-        )
+        selected_name = st.selectbox("Customer Name", users_data)
 
         if st.button("Generate Invoice"):
-            invoice_data = generate_json_invoice(nama = selected_name)
+            invoice_data = generate_json_invoice(nama=selected_name)
             
             with open(TEMPLATE_HTML_PATH) as template_file:
                 template_html = template_file.read()
                 
-            pdf_buffer = render_template_to_pdf(template_file = template_html,
-                                                context = invoice_data,
-                                                styles = TEMPLATE_CSS)
+            pdf_buffer = render_template_to_pdf(template_file=template_html, context=invoice_data, styles=TEMPLATE_CSS)
             
             st.download_button(
-                label = "Download Invoice PDF",
-                data = pdf_buffer,
-                file_name = f"invoice-doruken-{invoice_data['invoiceNumber']}-{invoice_data['client']['firstName']}.pdf",
-                mime = "application/pdf"
+                label="Download Invoice PDF",
+                data=pdf_buffer,
+                file_name=f"invoice-doruken-{invoice_data['invoiceNumber']}-{invoice_data['client']['firstName']}.pdf",
+                mime="application/pdf"
             )
-            
-            st.success(f"Invoice for {selected_name} success generate!")
+            st.success(f"Invoice untuk {selected_name} berhasil dibuat!")
 
     elif selected_box == "Dashboard":
-        st.header("Dashboard Tracker Transactions Performance")
-        
-        a, b, c, d = st.columns(4)
-        e, f, g, h = st.columns(4)
-        i, j, k = st.columns(3)
-        
-        a.metric("Total QTY", value = get_qty_data(data = "total"), border = True)
-        b.metric("Order QTY Ayyis", value = get_qty_data(data = "ayyis"), border = True)
-        c.metric("Order QTY Gothic", value = get_qty_data(data = "gothic"), border = True)
-        d.metric("Order QTY Bundle", value = get_qty_data(data = "bundle"), border = True)
-        
-        e.metric("Total Revenue", value = format_currency(get_revenue_data(data="total")), border=True)
-        f.metric("Total Revenue Ayyis", value = format_currency(get_revenue_data(data="ayyis")), border=True)
-        g.metric("Total Revenue Gothic", value = format_currency(get_revenue_data(data="gothic")), border=True)
-        h.metric("Total Revenue Bundle", value = format_currency(get_revenue_data(data="bundle")), border=True)
-        
-        i.metric("Total Order", value = get_paid_user_data(data = "total_order"), border = True)
-        j.metric("Total Paid Users", value = get_paid_user_data(data = "paid"), border = True)
-        k.metric("Total Not Paid Users", value = get_paid_user_data(data = "not_paid"), border = True)
+        cols1 = st.columns(4)
+        cols2 = st.columns(4)
+        cols3 = st.columns(2)
+
+        cols1[0].metric("Total Order QTY", get_qty_data("total"), border = True)
+        cols1[1].metric("Order QTY Ayyis", get_qty_data("ayyis"), border = True)
+        cols1[2].metric("Order QTY Gothic", get_qty_data("gothic"), border = True)
+        cols1[3].metric("Order QTY Bundle", get_qty_data("bundle"), border = True)
+
+        cols2[0].metric("Total Revenue", format_currency(get_revenue_data("total")), border = True)
+        cols2[1].metric("Total Revenue Ayyis", format_currency(get_revenue_data("ayyis")), border = True)
+        cols2[2].metric("Total Revenue Gothic", format_currency(get_revenue_data("gothic")), border = True)
+        cols2[3].metric("Total Revenue Bundle", format_currency(get_revenue_data("bundle")), border = True)
+
+        cols3[0].metric("Total Paid Users", get_paid_user_data("paid"), border = True)
+        cols3[1].metric("Total Not Paid Users", get_paid_user_data("not_paid"), border = True)
 
 
 if __name__ == "__main__":
